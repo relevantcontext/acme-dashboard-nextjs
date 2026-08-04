@@ -35,6 +35,20 @@ export type State = {
   message?: string | null;
 };
 
+// Every page that renders data derived from invoices. After ANY invoice
+// mutation (create, edit, delete, status toggle) we revalidate all of them so
+// no surface — dashboard cards, latest invoices, the invoices table and its
+// pagination counts, the per-customer invoice aggregates, or a cached edit
+// form — can serve stale values. Calling revalidatePath inside a Server
+// Action also purges the client-side router cache, which covers views reached
+// via back/forward navigation or by navigating away and back.
+function revalidateInvoiceSurfaces() {
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/invoices');
+  revalidatePath('/dashboard/customers');
+  revalidatePath('/dashboard/invoices/[id]/edit', 'page');
+}
+
 export async function createInvoice(prevState: State, formData: FormData) {
   // Validate form fields using Zod
   const validatedFields = CreateInvoice.safeParse({
@@ -69,8 +83,8 @@ export async function createInvoice(prevState: State, formData: FormData) {
     };
   }
 
-  // Revalidate the cache for the invoices page and redirect the user.
-  revalidatePath('/dashboard/invoices');
+  // Revalidate every invoice-derived surface and redirect the user.
+  revalidateInvoiceSurfaces();
   redirect('/dashboard/invoices');
 }
 
@@ -105,13 +119,41 @@ export async function updateInvoice(
     return { message: 'Database Error: Failed to Update Invoice.' };
   }
 
-  revalidatePath('/dashboard/invoices');
+  revalidateInvoiceSurfaces();
   redirect('/dashboard/invoices');
 }
 
 export async function deleteInvoice(id: string) {
   await sql`DELETE FROM invoices WHERE id = ${id}`;
-  revalidatePath('/dashboard/invoices');
+  revalidateInvoiceSurfaces();
+}
+
+const ToggleInvoiceStatus = FormSchema.pick({ status: true });
+
+/**
+ * Inline status toggle for a single invoice row. The client passes the target
+ * status (not "flip whatever is there") so the persisted result always matches
+ * what the user saw when they clicked, even if rapid clicks queue up.
+ */
+export async function toggleInvoiceStatus(id: string, status: string) {
+  const validated = ToggleInvoiceStatus.safeParse({ status });
+
+  if (!validated.success) {
+    throw new Error('Invalid status. Failed to Update Invoice Status.');
+  }
+
+  try {
+    await sql`
+      UPDATE invoices
+      SET status = ${validated.data.status}
+      WHERE id = ${id}
+    `;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Database Error: Failed to Update Invoice Status.');
+  }
+
+  revalidateInvoiceSurfaces();
 }
 
 export async function authenticate(
