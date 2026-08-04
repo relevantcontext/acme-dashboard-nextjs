@@ -123,11 +123,21 @@ export function buildFixture(customerCount: number, invoiceCount: number) {
 
   const fixtureCustomers = Array.from({ length: customerCount }, (_, i) => {
     const first = FIRST_NAMES[i % FIRST_NAMES.length];
-    // Stride by a number coprime with the list length so surnames cycle fully
-    // instead of repeating. `i / FIRST_NAMES.length` looked right and gave every
-    // customer one of TWO surnames, which made a search for "orban" match half
-    // the dataset — a fixture that cannot exercise a narrow filter.
-    const last = LAST_NAMES[(i * 13) % LAST_NAMES.length];
+    // Two fixes live in this line, both found by USING the fixture:
+    //
+    //   *13 (coprime stride)  — `i / FIRST_NAMES.length` gave every customer
+    //     one of TWO surnames, so a search for "orban" matched half the set.
+    //
+    //   + floor(i/20) (cycle drift) — with both indices cycling mod 20,
+    //     (i+20)*13 ≡ 13i (mod 20): customers 20–39 repeated the EXACT full
+    //     names of 0–19, and both apps' customer dropdowns showed every name
+    //     twice. Faithfully — the duplication was in the data. Drifting the
+    //     surname index by one per completed first-name cycle makes full names
+    //     unique for up to 400 customers (20×20 pairs).
+    const last =
+      LAST_NAMES[
+        (i * 13 + Math.floor(i / FIRST_NAMES.length)) % LAST_NAMES.length
+      ];
     const name = `${first} ${last}`;
 
     return {
