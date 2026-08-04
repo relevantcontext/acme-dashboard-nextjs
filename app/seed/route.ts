@@ -11,8 +11,12 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 // ── Two fixtures, one seeder ────────────────────────────────────────────────
 //
-// GET /seed                  the next-learn fixture, unchanged
-// GET /seed?set=enterprise   a few hundred invoices across a few dozen customers
+// GET /seed                  the enterprise fixture — 40 customers, 500 invoices
+// GET /seed?set=next-learn   the tutorial fixture — 6 customers, 13 invoices
+//
+// Enterprise is the default because it is the set the comparison runs on: at
+// thirteen invoices the two architectures are indistinguishable, which is the
+// one thing the measurement must not be.
 //
 // The route stays the single canonical place that owns the schema for BOTH
 // apps — infra/reset-db.sh deliberately contains no INSERTs of its own — so a
@@ -37,7 +41,7 @@ type SeedSet = {
 };
 
 const SETS: Record<string, SeedSet> = {
-  default: { customers, invoices, revenue },
+  'next-learn': { customers, invoices, revenue },
   enterprise: {
     customers: enterpriseCustomers,
     invoices: enterpriseInvoices,
@@ -152,12 +156,12 @@ async function seedRevenue(set: SeedSet) {
 }
 
 export async function GET(request: Request) {
-  const requested = new URL(request.url).searchParams.get('set') ?? 'default';
+  const requested = new URL(request.url).searchParams.get('set') ?? 'enterprise';
   const set = SETS[requested];
 
   if (!set) {
     return Response.json(
-      { error: `Unknown seed set "${requested}". Use default or enterprise.` },
+      { error: `Unknown seed set "${requested}". Use enterprise or next-learn.` },
       { status: 400 },
     );
   }
