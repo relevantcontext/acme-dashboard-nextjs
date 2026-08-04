@@ -1,18 +1,15 @@
 import bcrypt from 'bcrypt';
 import postgres from 'postgres';
 import { invoices, customers, revenue, users } from '../lib/placeholder-data';
-import {
-  enterpriseCustomers,
-  enterpriseInvoices,
-  enterpriseRevenue,
-} from '../lib/enterprise-data';
+import { enterprise, scale } from '../lib/enterprise-data';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 // ── Two fixtures, one seeder ────────────────────────────────────────────────
 //
-// GET /seed                  the enterprise fixture — 40 customers, 500 invoices
-// GET /seed?set=next-learn   the tutorial fixture — 6 customers, 13 invoices
+// GET /seed                  enterprise —  40 customers,  500 invoices
+// GET /seed?set=scale        scale      — 200 customers, 5000 invoices
+// GET /seed?set=next-learn   tutorial   —   6 customers,   13 invoices
 //
 // Enterprise is the default because it is the set the comparison runs on: at
 // thirteen invoices the two architectures are indistinguishable, which is the
@@ -42,11 +39,8 @@ type SeedSet = {
 
 const SETS: Record<string, SeedSet> = {
   'next-learn': { customers, invoices, revenue },
-  enterprise: {
-    customers: enterpriseCustomers,
-    invoices: enterpriseInvoices,
-    revenue: enterpriseRevenue,
-  },
+  enterprise,
+  scale,
 };
 
 async function seedUsers() {
@@ -161,7 +155,9 @@ export async function GET(request: Request) {
 
   if (!set) {
     return Response.json(
-      { error: `Unknown seed set "${requested}". Use enterprise or next-learn.` },
+      {
+        error: `Unknown seed set "${requested}". Use enterprise, scale or next-learn.`,
+      },
       { status: 400 },
     );
   }

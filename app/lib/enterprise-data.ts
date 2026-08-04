@@ -38,9 +38,6 @@
 
 import { revenue } from './placeholder-data';
 
-const CUSTOMER_COUNT = 40;
-const INVOICE_COUNT = 500;
-
 // Fixed seed. Changing this changes every generated row, so treat it as part of
 // the fixture's identity rather than as a knob.
 const SEED = 0x5f3759df;
@@ -112,11 +109,19 @@ const IMAGES = [
   '/customers/michael-novotny.png',
 ];
 
-const random = makeRandom(SEED);
+/**
+ * Builds one fixture at a given size.
+ *
+ * A factory rather than three copies, because the generator IS the fixture's
+ * definition — two of them would drift and the sets would stop being comparable
+ * to each other. Determinism is per-size: the same counts always produce the
+ * same rows, so `scale` is not a bigger `enterprise`, it is its own reproducible
+ * database.
+ */
+export function buildFixture(customerCount: number, invoiceCount: number) {
+  const random = makeRandom(SEED);
 
-export const enterpriseCustomers = Array.from(
-  { length: CUSTOMER_COUNT },
-  (_, i) => {
+  const fixtureCustomers = Array.from({ length: customerCount }, (_, i) => {
     const first = FIRST_NAMES[i % FIRST_NAMES.length];
     // Stride by a number coprime with the list length so surnames cycle fully
     // instead of repeating. `i / FIRST_NAMES.length` looked right and gave every
@@ -133,8 +138,7 @@ export const enterpriseCustomers = Array.from(
       email: `${first.toLowerCase()}.${last.toLowerCase().replace(/\s+/g, '')}${i}@example.com`,
       image_url: IMAGES[i % IMAGES.length],
     };
-  },
-);
+  });
 
 /**
  * Dates run backwards from a FIXED date, not from today.
@@ -147,30 +151,30 @@ export const enterpriseCustomers = Array.from(
 const ANCHOR = Date.UTC(2026, 0, 1);
 const DAY_MS = 86_400_000;
 
-export const enterpriseInvoices = Array.from({ length: INVOICE_COUNT }, (_, i) => {
-  const customer = enterpriseCustomers[Math.floor(random() * CUSTOMER_COUNT)];
-  // Cents, as the schema stores them — the same unit the original set uses and
-  // the reason a search for "448" matches $448.00.
-  const amount = Math.floor(random() * 99_000) + 1_000;
-  const daysBack = Math.floor(random() * 730);
+  const fixtureInvoices = Array.from({ length: invoiceCount }, () => {
+    const customer = fixtureCustomers[Math.floor(random() * customerCount)];
+    // Cents, as the schema stores them — the same unit the original set uses and
+    // the reason a search for "448" matches $448.00.
+    const amount = Math.floor(random() * 99_000) + 1_000;
+    const daysBack = Math.floor(random() * 730);
 
-  return {
-    id: makeUuid(random),
-    customer_id: customer.id,
-    amount,
-    status: random() < 0.55 ? 'paid' : 'pending',
-    date: new Date(ANCHOR - daysBack * DAY_MS).toISOString().slice(0, 10),
-  };
-});
+    return {
+      id: makeUuid(random),
+      customer_id: customer.id,
+      amount,
+      status: random() < 0.55 ? 'paid' : 'pending',
+      date: new Date(ANCHOR - daysBack * DAY_MS).toISOString().slice(0, 10),
+    };
+  });
 
-// Unchanged from the original set: twelve months, the same figures. The revenue
-// chart is not what this fixture is scaling, and holding it constant keeps the
-// dashboard panel comparable across both sets.
-export const enterpriseRevenue = revenue;
+  return { customers: fixtureCustomers, invoices: fixtureInvoices, revenue };
+}
 
-export const ENTERPRISE_COUNTS = {
-  customers: CUSTOMER_COUNT,
-  invoices: INVOICE_COUNT,
-  revenue: revenue.length,
-  users: 1,
-};
+// The two generated sets. Sizes are part of each set's identity — changing one
+// changes every row in it, so they are written here and not passed in.
+export const enterprise = buildFixture(40, 500);
+export const scale = buildFixture(200, 5000);
+
+// Revenue is unchanged in every set: twelve months, the same figures. It is not
+// what these fixtures scale, and holding it constant keeps the dashboard's chart
+// panel comparable across all three.
