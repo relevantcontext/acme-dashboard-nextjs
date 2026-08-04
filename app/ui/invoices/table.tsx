@@ -3,15 +3,19 @@ import { UpdateInvoice, DeleteInvoice } from '@/app/ui/invoices/buttons';
 import InvoiceStatus from '@/app/ui/invoices/status';
 import { formatDateToLocal, formatCurrency } from '@/app/lib/utils';
 import { fetchFilteredInvoices } from '@/app/lib/data';
+import SortableHeader from '@/app/ui/invoices/sortable-header';
+import { InvoiceSort } from '@/app/lib/invoice-sort';
 
 export default async function InvoicesTable({
   query,
   currentPage,
+  sort,
 }: {
   query: string;
   currentPage: number;
+  sort: InvoiceSort | null;
 }) {
-  const invoices = await fetchFilteredInvoices(query, currentPage);
+  const invoices = await fetchFilteredInvoices(query, currentPage, sort);
 
   return (
     <div className="mt-6 flow-root">
@@ -57,21 +61,30 @@ export default async function InvoicesTable({
           <table className="hidden min-w-full text-gray-900 md:table">
             <thead className="rounded-lg text-left text-sm font-normal">
               <tr>
-                <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
+                <SortableHeader
+                  column="customer"
+                  className="px-4 py-5 font-medium sm:pl-6"
+                >
                   Customer
-                </th>
+                </SortableHeader>
                 <th scope="col" className="px-3 py-5 font-medium">
                   Email
                 </th>
-                <th scope="col" className="px-3 py-5 font-medium">
+                <SortableHeader
+                  column="amount"
+                  className="px-3 py-5 font-medium"
+                >
                   Amount
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
+                </SortableHeader>
+                <SortableHeader column="date" className="px-3 py-5 font-medium">
                   Date
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
+                </SortableHeader>
+                <SortableHeader
+                  column="status"
+                  className="px-3 py-5 font-medium"
+                >
                   Status
-                </th>
+                </SortableHeader>
                 <th scope="col" className="relative py-3 pl-6 pr-3">
                   <span className="sr-only">Edit</span>
                 </th>

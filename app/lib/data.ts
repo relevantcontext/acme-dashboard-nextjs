@@ -8,6 +8,7 @@ import {
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
+import { InvoiceSort } from './invoice-sort';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -88,9 +89,30 @@ export async function fetchCardData() {
 }
 
 const ITEMS_PER_PAGE = 6;
+
+// Builds the ORDER BY fragment for the invoices table. Column names are never
+// taken from user input — the sort column is a whitelisted union type mapped to
+// hardcoded fragments here. No sort keeps the historical default (newest first).
+// Non-date sorts tie-break with the default order so pagination stays stable.
+function invoicesOrderBy(sort: InvoiceSort | null) {
+  if (!sort) return sql`invoices.date DESC, invoices.id DESC`;
+  const dir = sort.direction === 'asc' ? sql`ASC` : sql`DESC`;
+  switch (sort.column) {
+    case 'customer':
+      return sql`customers.name ${dir}, invoices.date DESC, invoices.id DESC`;
+    case 'amount':
+      return sql`invoices.amount ${dir}, invoices.date DESC, invoices.id DESC`;
+    case 'status':
+      return sql`invoices.status ${dir}, invoices.date DESC, invoices.id DESC`;
+    case 'date':
+      return sql`invoices.date ${dir}, invoices.id ${dir}`;
+  }
+}
+
 export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
+  sort: InvoiceSort | null = null,
 ) {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
@@ -112,7 +134,7 @@ export async function fetchFilteredInvoices(
         invoices.amount::text ILIKE ${`%${query}%`} OR
         invoices.date::text ILIKE ${`%${query}%`} OR
         invoices.status ILIKE ${`%${query}%`}
-      ORDER BY invoices.date DESC, invoices.id DESC
+      ORDER BY ${invoicesOrderBy(sort)}
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
 
