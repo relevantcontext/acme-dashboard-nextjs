@@ -5,6 +5,8 @@ import {
   InvoiceForm,
   InvoicesTable,
   LatestInvoiceRaw,
+  QuickSearchCustomer,
+  QuickSearchInvoice,
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
@@ -205,6 +207,63 @@ export async function fetchCustomers() {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch all customers.');
+  }
+}
+
+// ── Global quick-search (Cmd-K overlay) ─────────────────────────────────────
+//
+// Same ILIKE semantics as the invoices/customers pages so the overlay never
+// disagrees with the tables about what matches. Limits are generous (the
+// overlay renders a scrollable list of everything returned) but bounded so a
+// one-letter query against the full dataset stays cheap.
+const QUICK_SEARCH_CUSTOMER_LIMIT = 60;
+const QUICK_SEARCH_INVOICE_LIMIT = 200;
+
+export async function searchCustomers(query: string) {
+  try {
+    const customers = await sql<QuickSearchCustomer[]>`
+      SELECT id, name, email, image_url
+      FROM customers
+      WHERE
+        name ILIKE ${`%${query}%`} OR
+        email ILIKE ${`%${query}%`}
+      ORDER BY name ASC
+      LIMIT ${QUICK_SEARCH_CUSTOMER_LIMIT}
+    `;
+    return customers;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to search customers.');
+  }
+}
+
+export async function searchInvoices(query: string) {
+  try {
+    // Mirrors the WHERE clause of fetchFilteredInvoices; ordered newest first
+    // like the invoices table default.
+    const invoices = await sql<QuickSearchInvoice[]>`
+      SELECT
+        invoices.id,
+        invoices.amount,
+        invoices.date,
+        invoices.status,
+        customers.name,
+        customers.email
+      FROM invoices
+      JOIN customers ON invoices.customer_id = customers.id
+      WHERE
+        customers.name ILIKE ${`%${query}%`} OR
+        customers.email ILIKE ${`%${query}%`} OR
+        invoices.amount::text ILIKE ${`%${query}%`} OR
+        invoices.date::text ILIKE ${`%${query}%`} OR
+        invoices.status ILIKE ${`%${query}%`}
+      ORDER BY invoices.date DESC, invoices.id DESC
+      LIMIT ${QUICK_SEARCH_INVOICE_LIMIT}
+    `;
+    return invoices;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to search invoices.');
   }
 }
 

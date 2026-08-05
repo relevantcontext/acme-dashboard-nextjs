@@ -86,3 +86,26 @@ export type InvoiceForm = {
   amount: number;
   status: 'pending' | 'paid';
 };
+
+// Rows returned by the global quick-search (Cmd-K) endpoint. Kept lean on
+// purpose: only what the overlay renders and links with.
+export type QuickSearchCustomer = {
+  id: string;
+  name: string;
+  email: string;
+  image_url: string;
+};
+
+export type QuickSearchInvoice = {
+  id: string;
+  name: string;
+  email: string;
+  amount: number;
+  date: string;
+  status: 'pending' | 'paid';
+};
+
+export type QuickSearchResults = {
+  customers: QuickSearchCustomer[];
+  invoices: QuickSearchInvoice[];
+};

@@ -16,13 +16,22 @@ import { toggleInvoiceStatus } from '@/app/lib/actions';
  *
  * The next status is derived from the optimistic value (not the prop) so
  * rapid clicks toggle correctly instead of reading a stale closure.
+ *
+ * `onToggled` (optional) runs inside the same transition after the Server
+ * Action succeeds. Hosts whose row data does not come from a server render —
+ * e.g. the quick-search overlay, which fetches its list from /api/search —
+ * use it to refetch so the prop the optimistic value settles back onto is the
+ * persisted status. Awaiting it keeps the optimistic value on screen until
+ * that refetch lands (no flicker back to the stale prop).
  */
 export default function StatusToggle({
   id,
   status,
+  onToggled,
 }: {
   id: string;
   status: 'pending' | 'paid';
+  onToggled?: () => void | Promise<void>;
 }) {
   const [optimisticStatus, setOptimisticStatus] = useOptimistic(status);
   const [isPending, startTransition] = useTransition();
@@ -33,6 +42,7 @@ export default function StatusToggle({
     startTransition(async () => {
       setOptimisticStatus(nextStatus);
       await toggleInvoiceStatus(id, nextStatus);
+      await onToggled?.();
     });
   }
 
