@@ -213,8 +213,61 @@ function CustomerRowSkeleton() {
   );
 }
 
+// Table-only skeleton for the customers table Suspense boundary: the frame in
+// both its mobile-card and desktop shapes, without the heading/search row.
+export function CustomersTableSkeleton() {
+  return (
+    <div className="mt-6 flow-root">
+      <div className="overflow-x-auto">
+        <div className="inline-block min-w-full align-middle">
+          <div
+            className={`${shimmer} relative overflow-hidden rounded-md bg-gray-50 p-2 md:pt-0`}
+          >
+            <div className="md:hidden">
+              <InvoicesMobileSkeleton />
+              <InvoicesMobileSkeleton />
+              <InvoicesMobileSkeleton />
+              <InvoicesMobileSkeleton />
+            </div>
+            <table className="hidden min-w-full rounded-md text-gray-900 md:table">
+              <thead className="rounded-md bg-gray-50 text-left text-sm font-normal">
+                <tr>
+                  <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
+                    Name
+                  </th>
+                  <th scope="col" className="px-3 py-5 font-medium">
+                    Email
+                  </th>
+                  <th scope="col" className="px-3 py-5 font-medium">
+                    Total Invoices
+                  </th>
+                  <th scope="col" className="px-3 py-5 font-medium">
+                    Total Pending
+                  </th>
+                  <th scope="col" className="px-4 py-5 font-medium">
+                    Total Paid
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 text-gray-900">
+                <CustomerRowSkeleton />
+                <CustomerRowSkeleton />
+                <CustomerRowSkeleton />
+                <CustomerRowSkeleton />
+                <CustomerRowSkeleton />
+                <CustomerRowSkeleton />
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Route-level skeleton for /dashboard/customers (loading.tsx): heading,
-// search bar, then the table frame in both its mobile-card and desktop shapes.
+// search bar, table frame, pagination — mirroring the page's layout so the
+// cold-load paint and the hydrated page line up without layout shift.
 export function CustomersPageSkeleton() {
   return (
     <div className="w-full">
@@ -224,50 +277,9 @@ export function CustomersPageSkeleton() {
       <div
         className={`${shimmer} relative h-10 w-full overflow-hidden rounded-md bg-gray-100`}
       />
-      <div className="mt-6 flow-root">
-        <div className="overflow-x-auto">
-          <div className="inline-block min-w-full align-middle">
-            <div
-              className={`${shimmer} relative overflow-hidden rounded-md bg-gray-50 p-2 md:pt-0`}
-            >
-              <div className="md:hidden">
-                <InvoicesMobileSkeleton />
-                <InvoicesMobileSkeleton />
-                <InvoicesMobileSkeleton />
-                <InvoicesMobileSkeleton />
-              </div>
-              <table className="hidden min-w-full rounded-md text-gray-900 md:table">
-                <thead className="rounded-md bg-gray-50 text-left text-sm font-normal">
-                  <tr>
-                    <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
-                      Name
-                    </th>
-                    <th scope="col" className="px-3 py-5 font-medium">
-                      Email
-                    </th>
-                    <th scope="col" className="px-3 py-5 font-medium">
-                      Total Invoices
-                    </th>
-                    <th scope="col" className="px-3 py-5 font-medium">
-                      Total Pending
-                    </th>
-                    <th scope="col" className="px-4 py-5 font-medium">
-                      Total Paid
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 text-gray-900">
-                  <CustomerRowSkeleton />
-                  <CustomerRowSkeleton />
-                  <CustomerRowSkeleton />
-                  <CustomerRowSkeleton />
-                  <CustomerRowSkeleton />
-                  <CustomerRowSkeleton />
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+      <CustomersTableSkeleton />
+      <div className="mt-5 flex w-full justify-center">
+        <PaginationSkeleton />
       </div>
     </div>
   );
