@@ -3,7 +3,10 @@ import Search from '@/app/ui/search';
 import Table from '@/app/ui/invoices/table';
 import { CreateInvoice } from '@/app/ui/invoices/buttons';
 import { lusitana } from '@/app/ui/fonts';
-import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
+import {
+  InvoicesTableSkeleton,
+  PaginationSkeleton,
+} from '@/app/ui/skeletons';
 import { Suspense } from 'react';
 import { fetchInvoicesPages } from '@/app/lib/data';
 import { parseInvoiceSort } from '@/app/lib/invoice-sort';
@@ -26,8 +29,6 @@ export default async function Page(props: {
   const currentPage = Number(searchParams?.page) || 1;
   const sort = parseInvoiceSort(searchParams?.sort, searchParams?.dir);
 
-  const totalPages = await fetchInvoicesPages(query);
-
   return (
     <div className="w-full">
       <div className="flex w-full items-center justify-between">
@@ -44,8 +45,20 @@ export default async function Page(props: {
         <Table query={query} currentPage={currentPage} sort={sort} />
       </Suspense>
       <div className="mt-5 flex w-full justify-center">
-        <Pagination totalPages={totalPages} />
+        {/* The page-count COUNT(*) streams on its own so the page shell (and
+            the table skeleton above) paints without waiting for it. Keyed by
+            query only — page/sort changes don't alter the count, so the
+            rendered pagination stays on screen instead of flashing a
+            fallback during those navigations. */}
+        <Suspense key={query} fallback={<PaginationSkeleton />}>
+          <InvoicesPagination query={query} />
+        </Suspense>
       </div>
     </div>
   );
+}
+
+async function InvoicesPagination({ query }: { query: string }) {
+  const totalPages = await fetchInvoicesPages(query);
+  return <Pagination totalPages={totalPages} />;
 }

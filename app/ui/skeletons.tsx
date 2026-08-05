@@ -163,6 +163,158 @@ export function InvoicesMobileSkeleton() {
   );
 }
 
+// Route-level skeleton for /dashboard/invoices (loading.tsx). Mirrors the
+// page's layout — heading, search + create row, table, pagination — so the
+// cold-load paint and the hydrated page line up without layout shift.
+export function InvoicesPageSkeleton() {
+  return (
+    <div className="w-full">
+      <div
+        className={`${shimmer} relative h-8 w-36 overflow-hidden rounded-md bg-gray-100`}
+      />
+      <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+        <div
+          className={`${shimmer} relative h-10 w-full flex-1 overflow-hidden rounded-md bg-gray-100`}
+        />
+        <div
+          className={`${shimmer} relative h-10 w-40 overflow-hidden rounded-md bg-gray-100`}
+        />
+      </div>
+      <InvoicesTableSkeleton />
+      <div className="mt-5 flex w-full justify-center">
+        <PaginationSkeleton />
+      </div>
+    </div>
+  );
+}
+
+function CustomerRowSkeleton() {
+  return (
+    <tr className="group">
+      <td className="whitespace-nowrap bg-white py-5 pl-4 pr-3 text-sm sm:pl-6">
+        <div className="flex items-center gap-3">
+          <div className="h-7 w-7 rounded-full bg-gray-100" />
+          <div className="h-6 w-28 rounded bg-gray-100" />
+        </div>
+      </td>
+      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
+        <div className="h-6 w-40 rounded bg-gray-100" />
+      </td>
+      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
+        <div className="h-6 w-10 rounded bg-gray-100" />
+      </td>
+      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
+        <div className="h-6 w-16 rounded bg-gray-100" />
+      </td>
+      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
+        <div className="h-6 w-16 rounded bg-gray-100" />
+      </td>
+    </tr>
+  );
+}
+
+// Route-level skeleton for /dashboard/customers (loading.tsx): heading,
+// search bar, then the table frame in both its mobile-card and desktop shapes.
+export function CustomersPageSkeleton() {
+  return (
+    <div className="w-full">
+      <div
+        className={`${shimmer} relative mb-8 h-8 w-40 overflow-hidden rounded-md bg-gray-100`}
+      />
+      <div
+        className={`${shimmer} relative h-10 w-full overflow-hidden rounded-md bg-gray-100`}
+      />
+      <div className="mt-6 flow-root">
+        <div className="overflow-x-auto">
+          <div className="inline-block min-w-full align-middle">
+            <div
+              className={`${shimmer} relative overflow-hidden rounded-md bg-gray-50 p-2 md:pt-0`}
+            >
+              <div className="md:hidden">
+                <InvoicesMobileSkeleton />
+                <InvoicesMobileSkeleton />
+                <InvoicesMobileSkeleton />
+                <InvoicesMobileSkeleton />
+              </div>
+              <table className="hidden min-w-full rounded-md text-gray-900 md:table">
+                <thead className="rounded-md bg-gray-50 text-left text-sm font-normal">
+                  <tr>
+                    <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
+                      Name
+                    </th>
+                    <th scope="col" className="px-3 py-5 font-medium">
+                      Email
+                    </th>
+                    <th scope="col" className="px-3 py-5 font-medium">
+                      Total Invoices
+                    </th>
+                    <th scope="col" className="px-3 py-5 font-medium">
+                      Total Pending
+                    </th>
+                    <th scope="col" className="px-4 py-5 font-medium">
+                      Total Paid
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 text-gray-900">
+                  <CustomerRowSkeleton />
+                  <CustomerRowSkeleton />
+                  <CustomerRowSkeleton />
+                  <CustomerRowSkeleton />
+                  <CustomerRowSkeleton />
+                  <CustomerRowSkeleton />
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Route-level skeleton for the create/edit invoice forms: breadcrumb line,
+// then the form card with its three fields and action buttons.
+export function InvoiceFormSkeleton() {
+  return (
+    <div className="w-full">
+      <div
+        className={`${shimmer} relative mb-4 mt-2 h-7 w-64 overflow-hidden rounded-md bg-gray-100`}
+      />
+      <div
+        className={`${shimmer} relative overflow-hidden rounded-md bg-gray-50 p-4 md:p-6`}
+      >
+        <div className="mb-4">
+          <div className="mb-2 h-5 w-32 rounded bg-gray-100" />
+          <div className="h-10 w-full rounded-md bg-gray-100" />
+        </div>
+        <div className="mb-4">
+          <div className="mb-2 h-5 w-32 rounded bg-gray-100" />
+          <div className="h-10 w-full rounded-md bg-gray-100" />
+        </div>
+        <div className="mb-4">
+          <div className="mb-2 h-5 w-40 rounded bg-gray-100" />
+          <div className="h-12 w-full rounded-md bg-gray-100" />
+        </div>
+      </div>
+      <div className="mt-6 flex justify-end gap-4">
+        <div className="h-10 w-24 rounded-lg bg-gray-100" />
+        <div className="h-10 w-32 rounded-lg bg-gray-100" />
+      </div>
+    </div>
+  );
+}
+
+// Matches the footprint of <Pagination> (h-10 arrows + page numbers) so the
+// streamed-in pagination doesn't shift the layout.
+export function PaginationSkeleton() {
+  return (
+    <div
+      className={`${shimmer} relative inline-flex h-10 w-64 overflow-hidden rounded-md bg-gray-100`}
+    />
+  );
+}
+
 export function InvoicesTableSkeleton() {
   return (
     <div className="mt-6 flow-root">
