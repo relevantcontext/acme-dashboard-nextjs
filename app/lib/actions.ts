@@ -156,6 +156,76 @@ export async function toggleInvoiceStatus(id: string, status: string) {
   revalidateInvoiceSurfaces();
 }
 
+// One entry of the bulk-edit batch save. Only the fields the user actually
+// edited are present; everything else is left alone by the UPDATE below.
+const SaveInvoiceEdit = z.object({
+  id: z.string().uuid(),
+  fields: z
+    .object({
+      amount: z.number().int().gt(0).optional(), // cents
+      date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      status: z.enum(['pending', 'paid']).optional(),
+    })
+    .refine(
+      (fields) =>
+        fields.amount !== undefined ||
+        fields.date !== undefined ||
+        fields.status !== undefined,
+      { message: 'An edit must change at least one field.' },
+    ),
+});
+
+export type SaveInvoiceEditsResult =
+  | { ok: true; saved: number }
+  | { ok: false; message: string };
+
+/**
+ * Batch save for the invoices table's bulk-edit mode: persists every unsaved
+ * draft in ONE transaction.
+ *
+ * Concurrency contract: each UPDATE touches only the invoices the user
+ * edited, and via COALESCE only the FIELDS they edited. Changes that arrived
+ * from the live payment generator meanwhile — new invoices, or status flips
+ * on invoices the user didn't touch — are never written over. Where the user
+ * and an external event changed the SAME field of the SAME invoice, the
+ * user's explicit edit wins (last write). Returned errors (instead of throws)
+ * keep the client's drafts intact for retry.
+ *
+ * Reuses revalidateInvoiceSurfaces() so, exactly like every other invoice
+ * mutation, all invoice-derived surfaces reflect the saved values immediately.
+ */
+export async function saveInvoiceEdits(
+  edits: unknown,
+): Promise<SaveInvoiceEditsResult> {
+  const validated = z.array(SaveInvoiceEdit).min(1).max(1000).safeParse(edits);
+  if (!validated.success) {
+    return { ok: false, message: 'Invalid edits. Nothing was saved.' };
+  }
+
+  try {
+    await sql.begin(async (tx) => {
+      for (const edit of validated.data) {
+        await tx`
+          UPDATE invoices SET
+            amount = COALESCE(${edit.fields.amount ?? null}::int, amount),
+            date = COALESCE(${edit.fields.date ?? null}::date, date),
+            status = COALESCE(${edit.fields.status ?? null}::varchar, status)
+          WHERE id = ${edit.id}
+        `;
+      }
+    });
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { ok: false, message: 'Database Error: Failed to save edits.' };
+  }
+
+  revalidateInvoiceSurfaces();
+  return { ok: true, saved: validated.data.length };
+}
+
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,

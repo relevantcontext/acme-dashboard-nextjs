@@ -10,6 +10,8 @@ import {
 import { Suspense } from 'react';
 import { fetchInvoicesPages } from '@/app/lib/data';
 import { parseInvoiceSort } from '@/app/lib/invoice-sort';
+import InvoiceEditsProvider from '@/app/ui/invoices/edits-provider';
+import InvoiceSaveBar from '@/app/ui/invoices/save-bar';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -38,22 +40,31 @@ export default async function Page(props: {
         <Search placeholder="Search invoices..." />
         <CreateInvoice />
       </div>
-      <Suspense
-        key={`${query}-${currentPage}-${sort?.column ?? ''}-${sort?.direction ?? ''}`}
-        fallback={<InvoicesTableSkeleton />}
-      >
-        <Table query={query} currentPage={currentPage} sort={sort} />
-      </Suspense>
-      <div className="mt-5 flex w-full justify-center">
-        {/* The page-count COUNT(*) streams on its own so the page shell (and
-            the table skeleton above) paints without waiting for it. Keyed by
-            query only — page/sort changes don't alter the count, so the
-            rendered pagination stays on screen instead of flashing a
-            fallback during those navigations. */}
-        <Suspense key={query} fallback={<PaginationSkeleton />}>
-          <InvoicesPagination query={query} />
+      {/* InvoiceEditsProvider holds all unsaved bulk-edit state (drafts,
+          undo/redo history, in-progress cell editor). It sits OUTSIDE the
+          keyed Suspense boundary in a stable tree position, so edits survive
+          search/sort/pagination navigations (which remount the table below)
+          and the live-event router.refresh() (which never remounts client
+          components at all). */}
+      <InvoiceEditsProvider>
+        <Suspense
+          key={`${query}-${currentPage}-${sort?.column ?? ''}-${sort?.direction ?? ''}`}
+          fallback={<InvoicesTableSkeleton />}
+        >
+          <Table query={query} currentPage={currentPage} sort={sort} />
         </Suspense>
-      </div>
+        <div className="mt-5 flex w-full justify-center">
+          {/* The page-count COUNT(*) streams on its own so the page shell (and
+              the table skeleton above) paints without waiting for it. Keyed by
+              query only — page/sort changes don't alter the count, so the
+              rendered pagination stays on screen instead of flashing a
+              fallback during those navigations. */}
+          <Suspense key={query} fallback={<PaginationSkeleton />}>
+            <InvoicesPagination query={query} />
+          </Suspense>
+        </div>
+        <InvoiceSaveBar />
+      </InvoiceEditsProvider>
     </div>
   );
 }
