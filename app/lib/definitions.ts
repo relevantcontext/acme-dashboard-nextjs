@@ -109,3 +109,18 @@ export type QuickSearchResults = {
   customers: QuickSearchCustomer[];
   invoices: QuickSearchInvoice[];
 };
+
+// One row of the real-time payment activity ledger (payment_events table),
+// exactly as delivered over /api/events/stream. `id` is the SSE event id used
+// for resume-on-reconnect; `amount` is in cents like the invoices table.
+export type PaymentEventType = 'invoice_paid' | 'invoice_created';
+
+export type PaymentEvent = {
+  id: number;
+  type: PaymentEventType;
+  invoice_id: string;
+  customer_name: string;
+  customer_image_url: string;
+  amount: number;
+  created_at: string;
+};

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import StatusToggle from '@/app/ui/invoices/status-toggle';
+import { useLiveEvents } from '@/app/ui/live/live-events-provider';
 import { formatCurrency, formatDateToLocal } from '@/app/lib/utils';
 import type { QuickSearchResults } from '@/app/lib/definitions';
 
@@ -93,6 +94,19 @@ export default function QuickSearchOverlay({
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
+
+  // The overlay's results are client-fetched, so router.refresh() can't renew
+  // them — instead, re-run the current search whenever a live payment event
+  // lands. This never disturbs what the user is doing: the input (and its
+  // text, focus, and caret) is untouched, the highlight index is preserved
+  // (and clamped if the list shrinks), and runSearch's AbortController
+  // already guarantees the newest request wins. Skips when the query is
+  // empty — including on mount, where latestEventId is just "whatever the
+  // provider has seen so far".
+  const { latestEventId } = useLiveEvents();
+  useEffect(() => {
+    if (termRef.current.trim()) runSearch(termRef.current);
+  }, [latestEventId, runSearch]);
 
   const rows: Row[] = useMemo(
     () => [
